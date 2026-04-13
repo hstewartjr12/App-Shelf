@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xcodegen generate:*)",
+      "Bash(xcodebuild -project \"App Shelf.xcodeproj\" -scheme \"App Shelf\" -destination \"generic/platform=iOS Simulator\" -configuration Debug build)",
+      "Bash(grep -v \"^$\")",
+      "Bash(xcodebuild -project \"App Shelf.xcodeproj\" -scheme \"AppShelfWidget\" -destination \"generic/platform=iOS Simulator\" -configuration Debug build)"
+    ]
+  }
+}
