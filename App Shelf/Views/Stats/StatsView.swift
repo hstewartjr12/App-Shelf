@@ -36,7 +36,7 @@ struct StatsView: View {
             .buttonStyle(.plain)
 
             Spacer()
-            Text("\(selectedYear)")
+            Text(String(selectedYear))
                 .font(.title3)
                 .fontWeight(.semibold)
                 .monospacedDigit()
