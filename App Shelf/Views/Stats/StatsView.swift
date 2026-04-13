@@ -7,7 +7,9 @@ struct StatsView: View {
 
     @State private var selectedYear = Calendar.current.component(.year, from: .now)
 
-    private var calendar: Calendar { .current }
+    private var calculator: StatsCalculator {
+        StatsCalculator(items: allItems, tags: allTags)
+    }
 
     var body: some View {
         NavigationStack {
@@ -43,7 +45,7 @@ struct StatsView: View {
             Spacer()
 
             Button {
-                let current = calendar.component(.year, from: .now)
+                let current = Calendar.current.component(.year, from: .now)
                 if selectedYear < current {
                     selectedYear += 1
                 }
@@ -51,7 +53,7 @@ struct StatsView: View {
                 Image(systemName: "chevron.right")
             }
             .buttonStyle(.plain)
-            .disabled(selectedYear >= calendar.component(.year, from: .now))
+            .disabled(selectedYear >= Calendar.current.component(.year, from: .now))
         }
         .padding(.vertical, 4)
     }
@@ -62,28 +64,28 @@ struct StatsView: View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
             StatCardView(
                 title: "Finished",
-                value: "\(finishedCount(in: selectedYear))",
+                value: "\(calculator.finishedCount(in: selectedYear))",
                 icon: "checkmark.seal.fill",
                 subtitle: "this year"
             )
 
             StatCardView(
                 title: "This Month",
-                value: "\(finishedCount(inCurrentMonth: true))",
+                value: "\(calculator.finishedCount(inMonth: .now))",
                 icon: "calendar",
                 subtitle: finishedThisMonthLabel
             )
 
             StatCardView(
                 title: "Avg. Shelf Time",
-                value: avgShelfTime(year: selectedYear),
+                value: calculator.avgShelfTime(year: selectedYear),
                 icon: "clock.fill",
                 subtitle: "to finish"
             )
 
             StatCardView(
                 title: "Started",
-                value: "\(startedCount(in: selectedYear))",
+                value: "\(calculator.startedCount(in: selectedYear))",
                 icon: "play.fill",
                 subtitle: "this year"
             )
@@ -94,7 +96,7 @@ struct StatsView: View {
 
     @ViewBuilder
     private var moodTagSection: some View {
-        let tagCounts = tagCountsSorted(year: selectedYear)
+        let tagCounts = calculator.tagCountsSorted(year: selectedYear)
         if tagCounts.isEmpty {
             EmptyStateView(
                 systemImage: "tag",
@@ -118,7 +120,7 @@ struct StatsView: View {
                         RoundedRectangle(cornerRadius: 3)
                             .fill(Color.accentColor)
                             .frame(
-                                width: barWidth(count: entry.count, max: tagCounts.first?.count ?? 1),
+                                width: calculator.barWidth(count: entry.count, max: tagCounts.first?.count ?? 1),
                                 height: 8
                             )
                             .frame(width: 80, alignment: .trailing)
@@ -135,7 +137,7 @@ struct StatsView: View {
 
     @ViewBuilder
     private var mediaTypeSection: some View {
-        let typeCounts = typeCounts(year: selectedYear)
+        let typeCounts = calculator.typeCounts(year: selectedYear)
         if typeCounts.isEmpty {
             EmptyStateView(
                 systemImage: "square.grid.2x2",
@@ -166,92 +168,11 @@ struct StatsView: View {
         }
     }
 
-    // MARK: - Calculations
-
-    private func itemsFinished(year: Int) -> [MediaItem] {
-        allItems.filter { item in
-            guard let date = item.finishedDate else { return false }
-            return calendar.component(.year, from: date) == year
-        }
-    }
-
-    private func finishedCount(in year: Int) -> Int {
-        itemsFinished(year: year).count
-    }
-
-    private func finishedCount(inCurrentMonth: Bool) -> Int {
-        guard inCurrentMonth else { return 0 }
-        let now = Date.now
-        return allItems.filter { item in
-            guard let date = item.finishedDate else { return false }
-            return calendar.isDate(date, equalTo: now, toGranularity: .month)
-        }.count
-    }
+    // MARK: - Helpers
 
     private var finishedThisMonthLabel: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM"
         return "in \(formatter.string(from: .now))"
-    }
-
-    private func startedCount(in year: Int) -> Int {
-        allItems.filter { item in
-            guard let date = item.startedDate else { return false }
-            return calendar.component(.year, from: date) == year
-        }.count
-    }
-
-    private func avgShelfTime(year: Int) -> String {
-        let finished = itemsFinished(year: year).filter { $0.startedDate != nil }
-        guard !finished.isEmpty else { return "—" }
-        let durations = finished.compactMap { item -> Double? in
-            guard let start = item.startedDate, let end = item.finishedDate else { return nil }
-            return end.timeIntervalSince(start)
-        }
-        guard !durations.isEmpty else { return "—" }
-        let avgSeconds = durations.reduce(0, +) / Double(durations.count)
-        let days = Int(avgSeconds / 86400)
-        if days < 1 { return "< 1 day" }
-        if days == 1 { return "1 day" }
-        if days < 30 { return "\(days) days" }
-        let months = days / 30
-        return "\(months) mo"
-    }
-
-    private struct TagCount {
-        let tag: MoodTag
-        let count: Int
-    }
-
-    private func tagCountsSorted(year: Int) -> [TagCount] {
-        let finished = itemsFinished(year: year)
-        return allTags.compactMap { tag in
-            let count = finished.filter { item in
-                item.moodTags.contains(where: {
-                    $0.persistentModelID == tag.persistentModelID
-                })
-            }.count
-            return count > 0 ? TagCount(tag: tag, count: count) : nil
-        }
-        .sorted { $0.count > $1.count }
-    }
-
-    private struct TypeCount {
-        let type: MediaType
-        let count: Int
-    }
-
-    private func typeCounts(year: Int) -> [TypeCount] {
-        let finished = itemsFinished(year: year)
-        return MediaType.allCases.compactMap { type in
-            let count = finished.filter { $0.mediaType == type }.count
-            return count > 0 ? TypeCount(type: type, count: count) : nil
-        }
-        .sorted { $0.count > $1.count }
-    }
-
-    private func barWidth(count: Int, max: Int) -> CGFloat {
-        guard max > 0 else { return 0 }
-        return CGFloat(count) / CGFloat(max) * 80
     }
 }

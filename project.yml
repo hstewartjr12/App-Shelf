@@ -52,6 +52,21 @@ targets:
     dependencies:
       - target: AppShelfWidget
 
+  App ShelfTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: App ShelfTests
+    dependencies:
+      - target: App Shelf
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.appshelf.AppShelfTests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/App Shelf.app/App Shelf"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        SWIFT_VERSION: "5.9"
+        GENERATE_INFOPLIST_FILE: YES
+
   AppShelfWidget:
     type: app-extension
     platform: iOS
