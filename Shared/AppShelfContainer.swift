@@ -30,3 +30,26 @@ enum AppShelfContainer {
         return base.appendingPathComponent("AppShelf.store")
     }
 }
+
+enum PersistentIdentifierCoder {
+    private static let decoder = JSONDecoder()
+    private static let encoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return encoder
+    }()
+
+    static func encode(_ identifier: PersistentIdentifier) -> String {
+        do {
+            let data = try encoder.encode(identifier)
+            return data.base64EncodedString()
+        } catch {
+            fatalError("Failed to encode PersistentIdentifier: \(error)")
+        }
+    }
+
+    static func decode(_ string: String) -> PersistentIdentifier? {
+        guard let data = Data(base64Encoded: string) else { return nil }
+        return try? decoder.decode(PersistentIdentifier.self, from: data)
+    }
+}

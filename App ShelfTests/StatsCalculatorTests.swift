@@ -282,6 +282,32 @@ struct StatsCalculatorTests {
         #expect(calc.finishedCount(inMonth: date(year: 2025, month: 3, day: 1)) == 0)
     }
 
+    @Test("finishedCount(inMonth:year:) respects the selected year")
+    func finishedCountInMonthAndYear() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+
+        let jan2025 = MediaItem(title: "Jan 2025")
+        jan2025.finishedDate = date(year: 2025, month: 1, day: 15)
+        context.insert(jan2025)
+
+        let jan2026 = MediaItem(title: "Jan 2026")
+        jan2026.finishedDate = date(year: 2026, month: 1, day: 20)
+        context.insert(jan2026)
+
+        let feb2025 = MediaItem(title: "Feb 2025")
+        feb2025.finishedDate = date(year: 2025, month: 2, day: 1)
+        context.insert(feb2025)
+        try context.save()
+
+        let calc = StatsCalculator(items: [jan2025, jan2026, feb2025], tags: [])
+
+        #expect(calc.finishedCount(inMonth: 1, year: 2025) == 1)
+        #expect(calc.finishedCount(inMonth: 1, year: 2026) == 1)
+        #expect(calc.finishedCount(inMonth: 2, year: 2025) == 1)
+        #expect(calc.finishedCount(inMonth: 2, year: 2026) == 0)
+    }
+
     // MARK: - barWidth
 
     @Test("barWidth returns 0 when max is 0")

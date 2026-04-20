@@ -11,6 +11,22 @@ struct StatsView: View {
         StatsCalculator(items: allItems, tags: allTags)
     }
 
+    private var calendar: Calendar {
+        calculator.calendar
+    }
+
+    private var currentMonth: Int {
+        calendar.component(.month, from: .now)
+    }
+
+    private var currentMonthName: String {
+        calendar.monthSymbols[currentMonth - 1]
+    }
+
+    private var currentYear: Int {
+        calendar.component(.year, from: .now)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -45,15 +61,14 @@ struct StatsView: View {
             Spacer()
 
             Button {
-                let current = Calendar.current.component(.year, from: .now)
-                if selectedYear < current {
+                if selectedYear < currentYear {
                     selectedYear += 1
                 }
             } label: {
                 Image(systemName: "chevron.right")
             }
             .buttonStyle(.plain)
-            .disabled(selectedYear >= Calendar.current.component(.year, from: .now))
+            .disabled(selectedYear >= currentYear)
         }
         .padding(.vertical, 4)
     }
@@ -71,7 +86,7 @@ struct StatsView: View {
 
             StatCardView(
                 title: "This Month",
-                value: "\(calculator.finishedCount(inMonth: .now))",
+                value: "\(calculator.finishedCount(inMonth: currentMonth, year: selectedYear))",
                 icon: "calendar",
                 subtitle: finishedThisMonthLabel
             )
@@ -171,8 +186,10 @@ struct StatsView: View {
     // MARK: - Helpers
 
     private var finishedThisMonthLabel: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM"
-        return "in \(formatter.string(from: .now))"
+        if selectedYear == currentYear {
+            return "in \(currentMonthName)"
+        }
+
+        return "in \(currentMonthName) \(selectedYear)"
     }
 }

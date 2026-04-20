@@ -19,9 +19,11 @@ struct ShelfEntityQuery: EntityQuery {
         let context = ModelContext(container)
         let descriptor = FetchDescriptor<Shelf>(sortBy: [SortDescriptor(\.position)])
         let shelves = try context.fetch(descriptor)
+        let decodedIdentifiers = Set(identifiers.compactMap(PersistentIdentifierCoder.decode))
+
         return shelves
-            .filter { identifiers.contains($0.persistentModelID.hashValue.description) }
-            .map { ShelfEntity(id: $0.persistentModelID.hashValue.description, name: $0.name) }
+            .filter { decodedIdentifiers.contains($0.persistentModelID) }
+            .map { ShelfEntity(id: PersistentIdentifierCoder.encode($0.persistentModelID), name: $0.name) }
     }
 
     func suggestedEntities() async throws -> [ShelfEntity] {
@@ -30,7 +32,7 @@ struct ShelfEntityQuery: EntityQuery {
         let descriptor = FetchDescriptor<Shelf>(sortBy: [SortDescriptor(\.position)])
         let shelves = try context.fetch(descriptor)
         return shelves.map {
-            ShelfEntity(id: $0.persistentModelID.hashValue.description, name: $0.name)
+            ShelfEntity(id: PersistentIdentifierCoder.encode($0.persistentModelID), name: $0.name)
         }
     }
 }

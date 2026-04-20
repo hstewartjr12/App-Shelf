@@ -98,19 +98,77 @@ struct MediaItemTests {
         let container = try makeContainer()
         let context = ModelContext(container)
 
-        let shelf1 = Shelf(name: "Playing", position: 0)
-        let shelf2 = Shelf(name: "Finished", position: 1)
-        context.insert(shelf1)
-        context.insert(shelf2)
+        let sourceShelf = Shelf(name: "Playing", position: 0)
+        let destinationShelf = Shelf(name: "Finished", position: 1)
+        context.insert(sourceShelf)
+        context.insert(destinationShelf)
 
-        let item = MediaItem(title: "Celeste", shelf: shelf1)
+        let sourceA = MediaItem(title: "Source A", shelf: sourceShelf, positionInShelf: 0)
+        let movingItem = MediaItem(title: "Celeste", shelf: sourceShelf, positionInShelf: 1)
+        let sourceB = MediaItem(title: "Source B", shelf: sourceShelf, positionInShelf: 2)
+        let destinationA = MediaItem(title: "Destination A", shelf: destinationShelf, positionInShelf: 0)
+        let destinationB = MediaItem(title: "Destination B", shelf: destinationShelf, positionInShelf: 2)
+        context.insert(sourceA)
+        context.insert(movingItem)
+        context.insert(sourceB)
+        context.insert(destinationA)
+        context.insert(destinationB)
+        try context.save()
+
+        let moved = movingItem.move(to: destinationShelf)
+        try context.save()
+
+        #expect(moved == true)
+        #expect(movingItem.shelf?.name == "Finished")
+        #expect(sourceShelf.sortedItems.map(\.title) == ["Source A", "Source B"])
+        #expect(sourceShelf.sortedItems.map(\.positionInShelf) == [0, 1])
+        #expect(destinationShelf.sortedItems.map(\.title) == ["Destination A", "Destination B", "Celeste"])
+        #expect(destinationShelf.sortedItems.map(\.positionInShelf) == [0, 1, 2])
+    }
+
+    @Test("move(to:) is a no-op when moving to the current shelf")
+    func moveToSameShelfNoOp() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+
+        let shelf = Shelf(name: "Playing", position: 0)
+        context.insert(shelf)
+
+        let item = MediaItem(title: "Celeste", shelf: shelf, positionInShelf: 4)
+        item.finishedDate = date(year: 2025, month: 3, day: 14)
         context.insert(item)
         try context.save()
 
-        item.shelf = shelf2
+        let moved = item.move(to: shelf)
+
+        #expect(moved == false)
+        #expect(item.shelf?.name == "Playing")
+        #expect(item.positionInShelf == 4)
+        #expect(item.finishedDate == date(year: 2025, month: 3, day: 14))
+    }
+
+    @Test("normalizing before delete closes shelf gaps")
+    func deleteNormalization() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+
+        let shelf = Shelf(name: "Backlog", position: 0)
+        context.insert(shelf)
+
+        let first = MediaItem(title: "First", shelf: shelf, positionInShelf: 0)
+        let second = MediaItem(title: "Second", shelf: shelf, positionInShelf: 1)
+        let third = MediaItem(title: "Third", shelf: shelf, positionInShelf: 2)
+        context.insert(first)
+        context.insert(second)
+        context.insert(third)
         try context.save()
 
-        #expect(item.shelf?.name == "Finished")
+        shelf.normalizeItemPositions(removing: second)
+        context.delete(second)
+        try context.save()
+
+        #expect(shelf.sortedItems.map(\.title) == ["First", "Third"])
+        #expect(shelf.sortedItems.map(\.positionInShelf) == [0, 1])
     }
 
     // MARK: - Mutation
@@ -154,5 +212,14 @@ struct MediaItemTests {
         let item = MediaItem(title: "Test Item")
         context.insert(item)
         return item
+    }
+
+    private func date(year: Int, month: Int, day: Int) -> Date {
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+        components.day = day
+        components.hour = 12
+        return Calendar.current.date(from: components)!
     }
 }

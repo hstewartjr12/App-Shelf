@@ -9,6 +9,7 @@
 xcuserdata/
 *.moved-aside
 *.pbxuser
+*.xcodeproj
 DerivedData/
 *.hmap
 *.ipa
@@ -33,6 +34,7 @@ fastlane/test_output
 # Claude
 .claude/
 CLAUDE.md
+AGENTS.md
 
 # Env / secrets
 .env

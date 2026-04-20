@@ -2,6 +2,28 @@ import SwiftUI
 import SwiftData
 import PhotosUI
 
+struct AddItemAvailability {
+    let title: String
+    let selectedShelf: Shelf?
+    let shelves: [Shelf]
+
+    var resolvedShelf: Shelf? {
+        selectedShelf ?? shelves.first
+    }
+
+    var hasShelves: Bool {
+        !shelves.isEmpty
+    }
+
+    var trimmedTitle: String {
+        title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var canSubmit: Bool {
+        !trimmedTitle.isEmpty && resolvedShelf != nil
+    }
+}
+
 struct AddItemSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
@@ -12,6 +34,10 @@ struct AddItemSheet: View {
     @State private var selectedShelf: Shelf?
     @State private var photoItem: PhotosPickerItem?
     @State private var coverData: Data?
+
+    private var availability: AddItemAvailability {
+        AddItemAvailability(title: title, selectedShelf: selectedShelf, shelves: shelves)
+    }
 
     var body: some View {
         NavigationStack {
@@ -33,14 +59,27 @@ struct AddItemSheet: View {
                     }
                 }
 
-                Section("Shelf") {
-                    Picker("Shelf", selection: $selectedShelf) {
-                        ForEach(shelves) { shelf in
-                            Text(shelf.name).tag(Optional(shelf))
+                if availability.hasShelves {
+                    Section("Shelf") {
+                        Picker("Shelf", selection: $selectedShelf) {
+                            ForEach(shelves) { shelf in
+                                Text(shelf.name).tag(Optional(shelf))
+                            }
                         }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
                     }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
+                } else {
+                    Section("Shelf") {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Create a shelf first")
+                                .font(.headline)
+                            Text("Items need a shelf before they can be added.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
                 }
 
                 Section("Cover Art (optional)") {
@@ -82,11 +121,16 @@ struct AddItemSheet: View {
                     Button("Add") {
                         addItem()
                     }
-                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(!availability.canSubmit)
                     .fontWeight(.semibold)
                 }
             }
             .onAppear {
+                if selectedShelf == nil {
+                    selectedShelf = shelves.first
+                }
+            }
+            .onChange(of: shelves.count) { _, _ in
                 if selectedShelf == nil {
                     selectedShelf = shelves.first
                 }
@@ -96,14 +140,11 @@ struct AddItemSheet: View {
     }
 
     private func addItem() {
-        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        let shelf = selectedShelf ?? shelves.first
-        let position = shelf?.items.count ?? 0
+        guard availability.canSubmit, let shelf = availability.resolvedShelf else { return }
+        let position = shelf.nextItemPosition
 
         let item = MediaItem(
-            title: trimmed,
+            title: availability.trimmedTitle,
             mediaType: mediaType,
             shelf: shelf,
             positionInShelf: position

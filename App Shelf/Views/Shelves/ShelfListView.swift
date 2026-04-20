@@ -4,16 +4,24 @@ import SwiftData
 struct ShelfListView: View {
     @Query(sort: \Shelf.position) private var shelves: [Shelf]
     @State private var showAddItem = false
+    @State private var showAddShelf = false
 
     var body: some View {
         NavigationStack {
             Group {
                 if shelves.isEmpty {
-                    EmptyStateView(
-                        systemImage: "books.vertical",
-                        title: "No shelves yet",
-                        subtitle: "Your shelves will appear here"
-                    )
+                    VStack(spacing: 16) {
+                        EmptyStateView(
+                            systemImage: "books.vertical",
+                            title: "No shelves yet",
+                            subtitle: "Create a shelf to start tracking your media."
+                        )
+
+                        Button("Create Shelf") {
+                            showAddShelf = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
                 } else {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 28) {
@@ -29,7 +37,11 @@ struct ShelfListView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        showAddItem = true
+                        if shelves.isEmpty {
+                            showAddShelf = true
+                        } else {
+                            showAddItem = true
+                        }
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -37,6 +49,9 @@ struct ShelfListView: View {
             }
             .sheet(isPresented: $showAddItem) {
                 AddItemSheet()
+            }
+            .sheet(isPresented: $showAddShelf) {
+                ShelfEditorView()
             }
         }
     }

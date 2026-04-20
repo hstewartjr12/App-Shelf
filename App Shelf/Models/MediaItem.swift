@@ -35,3 +35,31 @@ final class MediaItem {
         self.moodTags = []
     }
 }
+
+extension MediaItem {
+    @discardableResult
+    func move(to destinationShelf: Shelf, finishedShelfName: String = Shelf.finishedShelfName) -> Bool {
+        guard shelf?.persistentModelID != destinationShelf.persistentModelID else {
+            return false
+        }
+
+        let sourceShelf = shelf
+        let wasOnFinishedShelf = sourceShelf?.name == finishedShelfName
+        let movingToFinishedShelf = destinationShelf.name == finishedShelfName
+        let destinationPosition = destinationShelf.nextItemPosition
+
+        shelf = destinationShelf
+        positionInShelf = destinationPosition
+
+        sourceShelf?.normalizeItemPositions(removing: self)
+        destinationShelf.normalizeItemPositions()
+
+        if movingToFinishedShelf && finishedDate == nil {
+            finishedDate = .now
+        } else if wasOnFinishedShelf && !movingToFinishedShelf {
+            finishedDate = nil
+        }
+
+        return true
+    }
+}

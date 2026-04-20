@@ -2,10 +2,11 @@ import SwiftUI
 import SwiftData
 
 struct ShelfRowView: View {
-    @Environment(\.modelContext) private var context
     let shelf: Shelf
 
     var body: some View {
+        let items = shelf.sortedItems
+
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(shelf.name)
@@ -19,7 +20,7 @@ struct ShelfRowView: View {
                     .padding(.horizontal)
             }
 
-            if shelf.sortedItems.isEmpty {
+            if items.isEmpty {
                 EmptyStateView(
                     systemImage: "plus.circle.dashed",
                     title: "Nothing here yet",
@@ -29,7 +30,7 @@ struct ShelfRowView: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 12) {
-                        ForEach(shelf.sortedItems) { item in
+                        ForEach(items) { item in
                             VStack(spacing: 6) {
                                 CoverCardView(item: item)
                                 Text(item.title)

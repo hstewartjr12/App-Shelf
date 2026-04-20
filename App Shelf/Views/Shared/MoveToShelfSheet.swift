@@ -41,17 +41,9 @@ struct MoveToShelfSheet: View {
     }
 
     private func move(to shelf: Shelf) {
-        let finishedName = "Finished"
-        let wasOnFinished = item.shelf?.name == finishedName
-        let movingToFinished = shelf.name == finishedName
-
-        item.shelf = shelf
-        item.positionInShelf = shelf.items.count
-
-        if movingToFinished && item.finishedDate == nil {
-            item.finishedDate = .now
-        } else if wasOnFinished && !movingToFinished {
-            item.finishedDate = nil
+        guard item.move(to: shelf) else {
+            dismiss()
+            return
         }
 
         try? context.save()

@@ -24,7 +24,10 @@ _Coming soon_
 ## Getting Started
 
 1. Clone the repo
-2. Open `App Shelf.xcodeproj` in Xcode
-3. Select your target device and run
+2. Install XcodeGen if needed: `brew install xcodegen`
+3. Generate the Xcode project: `xcodegen generate`
+4. Open `App Shelf.xcodeproj` in Xcode
+5. Select your target device and run
 
 > Requires Xcode 15+ and an iOS 17 simulator or device.
+> Re-run `xcodegen generate` any time `project.yml` changes.

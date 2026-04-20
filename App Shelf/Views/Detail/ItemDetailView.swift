@@ -4,9 +4,7 @@ import PhotosUI
 
 struct ItemDetailView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var context
     @Query(sort: \MoodTag.label) private var allTags: [MoodTag]
-    @Query(sort: \Shelf.position) private var shelves: [Shelf]
 
     @Bindable var item: MediaItem
 

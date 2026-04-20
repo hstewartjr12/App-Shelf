@@ -89,10 +89,69 @@ struct DataSeederTests {
         #expect(allDefault)
     }
 
+    @Test("seedRequirements detects an empty store")
+    func seedRequirementsEmptyStore() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+
+        let requirements = DataSeeder.seedRequirements(context: context)
+
+        #expect(requirements == .init(needsShelves: true, needsMoodTags: true))
+    }
+
+    @Test("seedIfNeeded reseeds shelves when defaults say seeded but store is empty")
+    func seedIfNeededReseedsEmptyShelves() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: "AppShelf.hasSeeded")
+
+        DataSeeder.seedIfNeeded(context: context, defaults: defaults)
+
+        let shelves = try context.fetch(FetchDescriptor<Shelf>(sortBy: [SortDescriptor(\.position)]))
+        #expect(shelves.map(\.name) == ["Currently Playing", "Watching", "Backlog", "Finished", "Dropped"])
+    }
+
+    @Test("seedIfNeeded reseeds mood tags when shelves exist but tags are missing")
+    func seedIfNeededReseedsMissingTags() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: "AppShelf.hasSeeded")
+
+        for (name, position) in Shelf.defaultShelves {
+            context.insert(Shelf(name: name, position: position, isDefault: true))
+        }
+        try context.save()
+
+        DataSeeder.seedIfNeeded(context: context, defaults: defaults)
+
+        let tags = try context.fetch(FetchDescriptor<MoodTag>())
+        #expect(Set(tags.map(\.label)) == Set(MoodTag.defaults))
+    }
+
+    @Test("seedIfNeeded marks the defaults flag after ensuring data")
+    func seedIfNeededMarksDefaults() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+        let defaults = makeDefaults()
+
+        DataSeeder.seedIfNeeded(context: context, defaults: defaults)
+
+        #expect(defaults.bool(forKey: "AppShelf.hasSeeded") == true)
+    }
+
     // MARK: - Helpers
 
     private func makeContainer() throws -> ModelContainer {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         return try ModelContainer(for: Shelf.self, MediaItem.self, MoodTag.self, configurations: config)
+    }
+
+    private func makeDefaults() -> UserDefaults {
+        let suiteName = "DataSeederTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        return defaults
     }
 }

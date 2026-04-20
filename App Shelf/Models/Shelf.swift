@@ -21,6 +21,8 @@ final class Shelf {
 }
 
 extension Shelf {
+    static let finishedShelfName = "Finished"
+
     static let defaultShelves: [(name: String, position: Int)] = [
         ("Currently Playing", 0),
         ("Watching", 1),
@@ -30,6 +32,36 @@ extension Shelf {
     ]
 
     var sortedItems: [MediaItem] {
-        items.sorted { $0.positionInShelf < $1.positionInShelf }
+        items.sorted(by: Shelf.itemSort)
+    }
+
+    var nextItemPosition: Int {
+        (items.map(\.positionInShelf).max() ?? -1) + 1
+    }
+
+    func normalizeItemPositions(removing removedItem: MediaItem? = nil) {
+        let removedIdentifier = removedItem?.persistentModelID
+        let orderedItems = items
+            .filter { item in
+                guard let removedIdentifier else { return true }
+                return item.persistentModelID != removedIdentifier
+            }
+            .sorted(by: Shelf.itemSort)
+
+        for (index, item) in orderedItems.enumerated() {
+            item.positionInShelf = index
+        }
+    }
+
+    private static func itemSort(_ lhs: MediaItem, _ rhs: MediaItem) -> Bool {
+        if lhs.positionInShelf != rhs.positionInShelf {
+            return lhs.positionInShelf < rhs.positionInShelf
+        }
+
+        if lhs.createdAt != rhs.createdAt {
+            return lhs.createdAt < rhs.createdAt
+        }
+
+        return lhs.title.localizedStandardCompare(rhs.title) == .orderedAscending
     }
 }

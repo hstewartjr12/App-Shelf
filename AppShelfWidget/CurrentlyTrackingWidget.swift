@@ -36,9 +36,10 @@ struct CurrentlyTrackingProvider: AppIntentTimelineProvider {
             let shelves = try context.fetch(descriptor)
 
             let targetShelf: Shelf?
-            if let entityId = configuration.shelf?.id {
+            if let entityId = configuration.shelf?.id,
+               let persistentIdentifier = PersistentIdentifierCoder.decode(entityId) {
                 targetShelf = shelves.first(where: {
-                    $0.persistentModelID.hashValue.description == entityId
+                    $0.persistentModelID == persistentIdentifier
                 }) ?? shelves.first
             } else {
                 targetShelf = shelves.first
@@ -50,7 +51,7 @@ struct CurrentlyTrackingProvider: AppIntentTimelineProvider {
 
             let items = shelf.sortedItems.prefix(3).map { item in
                 WidgetMediaItem(
-                    id: item.persistentModelID.hashValue.description,
+                    id: PersistentIdentifierCoder.encode(item.persistentModelID),
                     title: item.title,
                     coverImageData: item.coverImageData,
                     mediaType: item.mediaType

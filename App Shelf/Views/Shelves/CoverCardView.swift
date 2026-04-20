@@ -30,6 +30,7 @@ struct CoverCardView: View {
             Divider()
 
             Button(role: .destructive) {
+                item.shelf?.normalizeItemPositions(removing: item)
                 context.delete(item)
                 try? context.save()
             } label: {

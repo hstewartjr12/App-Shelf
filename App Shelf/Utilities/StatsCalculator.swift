@@ -34,9 +34,17 @@ struct StatsCalculator {
     }
 
     func finishedCount(inMonth reference: Date) -> Int {
+        finishedCount(
+            inMonth: calendar.component(.month, from: reference),
+            year: calendar.component(.year, from: reference)
+        )
+    }
+
+    func finishedCount(inMonth month: Int, year: Int) -> Int {
         items.filter { item in
             guard let date = item.finishedDate else { return false }
-            return calendar.isDate(date, equalTo: reference, toGranularity: .month)
+            return calendar.component(.month, from: date) == month
+                && calendar.component(.year, from: date) == year
         }.count
     }
 
