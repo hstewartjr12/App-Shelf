@@ -4,6 +4,7 @@ import SwiftData
 struct CoverCardView: View {
     @Environment(\.modelContext) private var context
     let item: MediaItem
+    var size: CGSize = CGSize(width: 100, height: 140)
     @State private var showMoveSheet = false
     @State private var showDetail = false
 
@@ -15,7 +16,7 @@ struct CoverCardView: View {
                 data: item.coverImageData,
                 mediaType: item.mediaType,
                 cornerRadius: 12,
-                size: CGSize(width: 100, height: 140)
+                size: size
             )
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
         }

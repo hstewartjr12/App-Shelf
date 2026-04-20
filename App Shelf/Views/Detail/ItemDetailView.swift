@@ -34,6 +34,9 @@ struct ItemDetailView: View {
                 }
             }
         }
+        #if os(macOS)
+        .frame(minWidth: 620, minHeight: 720)
+        #endif
     }
 
     // MARK: - Cover
@@ -80,7 +83,7 @@ struct ItemDetailView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                Text("Tap to rate")
+                Text(ratePrompt)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -203,6 +206,14 @@ struct ItemDetailView: View {
         case 5: return "Masterpiece"
         default: return ""
         }
+    }
+
+    private var ratePrompt: String {
+        #if os(macOS)
+        return "Click to rate"
+        #else
+        return "Tap to rate"
+        #endif
     }
 }
 

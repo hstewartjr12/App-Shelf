@@ -38,7 +38,11 @@ struct ShelfEditorView: View {
                 }
             }
         }
+        #if os(macOS)
+        .frame(minWidth: 360, minHeight: 180)
+        #else
         .presentationDetents([.height(200)])
+        #endif
     }
 
     private func save() {

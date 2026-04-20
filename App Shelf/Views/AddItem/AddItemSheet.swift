@@ -136,7 +136,11 @@ struct AddItemSheet: View {
                 }
             }
         }
+        #if os(macOS)
+        .frame(minWidth: 520, minHeight: 460)
+        #else
         .presentationDetents([.medium, .large])
+        #endif
     }
 
     private func addItem() {

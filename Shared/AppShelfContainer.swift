@@ -4,9 +4,22 @@ import Foundation
 enum AppShelfContainer {
     static let appGroupIdentifier = "group.com.appshelf.shared"
 
+    enum PersistencePlatform {
+        case iOS
+        case macOS
+
+        static var current: PersistencePlatform {
+            #if os(macOS)
+            .macOS
+            #else
+            .iOS
+            #endif
+        }
+    }
+
     static func create() -> ModelContainer {
         let schema = Schema([MediaItem.self, Shelf.self, MoodTag.self])
-        let url = containerURL
+        let url = persistentStoreURL()
         let config = ModelConfiguration(
             "AppShelf",
             schema: schema,
@@ -22,12 +35,40 @@ enum AppShelfContainer {
         }
     }
 
-    static var containerURL: URL {
-        let groupURL = FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)
-        // On macOS Simulator / without a provisioned App Group, fall back to app support directory
-        let base = groupURL ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return base.appendingPathComponent("AppShelf.store")
+    static func persistentStoreURL(
+        fileManager: FileManager = .default,
+        platform: PersistencePlatform = .current
+    ) -> URL {
+        let applicationSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let url = persistentStoreURL(
+            appGroupURL: fileManager.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier),
+            applicationSupportURL: applicationSupportURL,
+            platform: platform
+        )
+
+        let directoryURL = url.deletingLastPathComponent()
+        try? fileManager.createDirectory(
+            at: directoryURL,
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
+        return url
+    }
+
+    static func persistentStoreURL(
+        appGroupURL: URL?,
+        applicationSupportURL: URL,
+        platform: PersistencePlatform
+    ) -> URL {
+        switch platform {
+        case .iOS:
+            let baseURL = appGroupURL ?? applicationSupportURL
+            return baseURL.appendingPathComponent("AppShelf.store")
+        case .macOS:
+            return applicationSupportURL
+                .appendingPathComponent("App Shelf", isDirectory: true)
+                .appendingPathComponent("AppShelf.store")
+        }
     }
 }
 

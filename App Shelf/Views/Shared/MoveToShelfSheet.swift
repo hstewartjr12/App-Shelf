@@ -37,7 +37,11 @@ struct MoveToShelfSheet: View {
                 }
             }
         }
+        #if os(macOS)
+        .frame(minWidth: 320, minHeight: 280)
+        #else
         .presentationDetents([.medium])
+        #endif
     }
 
     private func move(to shelf: Shelf) {

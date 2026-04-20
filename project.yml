@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: com.appshelf
   deploymentTarget:
     iOS: "17.0"
+    macOS: "14.0"
   xcodeVersion: "15.4"
   createIntermediateGroups: true
 
@@ -14,6 +15,29 @@ settings:
   configs:
     Release:
       VALIDATE_PRODUCT: true
+
+schemes:
+  App Shelf:
+    build:
+      targets:
+        App Shelf: all
+        AppShelfWidget: [build]
+    test:
+      targets:
+        - App ShelfTests
+    run:
+      config: Debug
+    archive:
+      config: Release
+
+  App Shelf Mac:
+    build:
+      targets:
+        App Shelf Mac: all
+    run:
+      config: Debug
+    archive:
+      config: Release
 
 targets:
   App Shelf:
@@ -51,6 +75,32 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
     dependencies:
       - target: AppShelfWidget
+
+  App Shelf Mac:
+    type: application
+    platform: macOS
+    sources:
+      - path: "App Shelf Mac"
+      - path: "App Shelf/Models"
+      - path: "App Shelf/Views"
+      - path: "App Shelf/Utilities"
+      - path: Shared
+    info:
+      path: "App Shelf Mac/Info.plist"
+      properties:
+        CFBundleName: App Shelf
+        CFBundleDisplayName: App Shelf
+        NSPhotoLibraryUsageDescription: "App Shelf uses your photo library to add cover art for your media."
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.appshelf.AppShelf.mac
+        INFOPLIST_FILE: "App Shelf Mac/Info.plist"
+        ENABLE_PREVIEWS: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: YES
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
 
   App ShelfTests:
     type: bundle.unit-test
