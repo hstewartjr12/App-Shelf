@@ -10,6 +10,7 @@ struct ShelfTests {
     @Test("defaultShelves has 5 entries")
     func defaultShelvesCount() {
         #expect(Shelf.defaultShelves.count == 5)
+        #expect(Shelf.builtInDefinitions.count == 5)
     }
 
     @Test("defaultShelves positions are 0-4")
@@ -37,6 +38,7 @@ struct ShelfTests {
         #expect(shelf.name == "Reading")
         #expect(shelf.position == 2)
         #expect(shelf.isDefault == true)
+        #expect(shelf.seedKey == nil)
         #expect(shelf.items.isEmpty)
     }
 

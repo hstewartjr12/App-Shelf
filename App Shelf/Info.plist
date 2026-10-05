@@ -24,6 +24,10 @@
 	<false/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>App Shelf uses your photo library to add cover art for your media.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchScreen</key>

@@ -29,7 +29,7 @@ struct StatCardView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.secondary.opacity(0.07))
+        .background(Color.shelfCard)
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }

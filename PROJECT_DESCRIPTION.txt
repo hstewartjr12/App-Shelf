@@ -1,0 +1,9 @@
+App Shelf
+
+GitHub: https://github.com/hstewartjr12/App-Shelf
+
+App Shelf is an iOS app (SwiftUI + SwiftData) for tracking the media you're into — games, shows, movies, books, and music. You organize items onto shelves like "Currently Tracking" or "Finished," rate them, tag them with moods, and watch a Year-in-Review stats view come together over time. It even ships with a home screen widget that surfaces what you're currently working through.
+
+I built it because I wanted a first project that was beginner-friendly but actually useful to me day-to-day, and because I genuinely enjoy developing for Apple platforms. It was a way to learn SwiftData, WidgetKit, and App Intents by shipping something real rather than following a tutorial.
+
+I used Cursor as my AI coding partner throughout — translating my design and feature ideas into working SwiftUI code, helping me structure the data models and the shared app-group container, and iterating quickly on UI and behavior. I drove the vision and the design decisions; the AI tools helped me execute them faster and learn the frameworks along the way.

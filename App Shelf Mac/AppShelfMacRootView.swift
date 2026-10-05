@@ -10,9 +10,9 @@ private enum AppShelfMacSection: String, CaseIterable, Hashable, Identifiable {
     var title: String {
         switch self {
         case .shelf:
-            return "Shelf"
+            return "Library"
         case .stats:
-            return "Stats"
+            return "Review"
         }
     }
 
@@ -49,8 +49,10 @@ struct AppShelfMacRootView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .navigationSplitViewStyle(.balanced)
+        .tint(ShelfStyle.sage)
         .onAppear {
             DataSeeder.seedIfNeeded(context: context)
+            DemoLibrary.seedIfRequested(context: context)
         }
     }
 

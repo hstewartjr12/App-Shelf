@@ -16,6 +16,7 @@ struct DataSeederTests {
 
         let shelves = try context.fetch(FetchDescriptor<Shelf>())
         #expect(shelves.count == 5)
+        #expect(Set(shelves.compactMap(\.seedKey)) == Set(Shelf.builtInDefinitions.map(\.seedKey)))
     }
 
     @Test("seed inserts exactly 8 mood tags")
@@ -27,6 +28,7 @@ struct DataSeederTests {
 
         let tags = try context.fetch(FetchDescriptor<MoodTag>())
         #expect(tags.count == 8)
+        #expect(Set(tags.compactMap(\.seedKey)) == Set(MoodTag.builtInDefinitions.map(\.seedKey)))
     }
 
     @Test("seed inserts shelves with correct names")
@@ -128,6 +130,121 @@ struct DataSeederTests {
 
         let tags = try context.fetch(FetchDescriptor<MoodTag>())
         #expect(Set(tags.map(\.label)) == Set(MoodTag.defaults))
+    }
+
+    @Test("seedIfNeeded backfills seed keys on legacy built-ins instead of duplicating")
+    func seedIfNeededBackfillsLegacyBuiltIns() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+
+        for (name, position) in Shelf.defaultShelves {
+            context.insert(Shelf(name: name, position: position, isDefault: true))
+        }
+        for label in MoodTag.defaults {
+            context.insert(MoodTag(label: label))
+        }
+        try context.save()
+
+        DataSeeder.seedIfNeeded(context: context)
+
+        let shelves = try context.fetch(FetchDescriptor<Shelf>())
+        let tags = try context.fetch(FetchDescriptor<MoodTag>())
+
+        #expect(shelves.count == 5)
+        #expect(tags.count == 8)
+        #expect(Set(shelves.compactMap(\.seedKey)) == Set(Shelf.builtInDefinitions.map(\.seedKey)))
+        #expect(Set(tags.compactMap(\.seedKey)) == Set(MoodTag.builtInDefinitions.map(\.seedKey)))
+    }
+
+    @Test("duplicate built-in mood tags are collapsed and relationships are preserved")
+    func seedIfNeededCollapsesDuplicateBuiltInTags() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+
+        let cozySeeded = MoodTag(label: "cozy", seedKey: "tag.cozy")
+        let cozyLegacy = MoodTag(label: "cozy")
+        let item = MediaItem(title: "Stardew Valley")
+        context.insert(cozySeeded)
+        context.insert(cozyLegacy)
+        context.insert(item)
+        item.moodTags = [cozyLegacy]
+        try context.save()
+
+        DataSeeder.seedIfNeeded(context: context)
+
+        let tags = try context.fetch(FetchDescriptor<MoodTag>())
+        let cozyTags = tags.filter { $0.label == "cozy" }
+        let refreshedItem = try #require(try context.fetch(FetchDescriptor<MediaItem>()).first)
+
+        #expect(cozyTags.count == 1)
+        #expect(cozyTags.first?.seedKey == "tag.cozy")
+        #expect(refreshedItem.moodTags.count == 1)
+        #expect(refreshedItem.moodTags.first?.seedKey == "tag.cozy")
+    }
+
+    @Test("duplicate default shelves are collapsed and items are preserved")
+    func seedIfNeededCollapsesDuplicateBuiltInShelves() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+
+        let canonical = Shelf(name: "Finished", position: 0, isDefault: true, seedKey: "shelf.finished")
+        let legacyDuplicate = Shelf(name: "Finished", position: 3, isDefault: true)
+        context.insert(canonical)
+        context.insert(legacyDuplicate)
+
+        let canonicalItem = MediaItem(title: "First", shelf: canonical, positionInShelf: 0)
+        let duplicateItem = MediaItem(title: "Second", shelf: legacyDuplicate, positionInShelf: 0)
+        context.insert(canonicalItem)
+        context.insert(duplicateItem)
+        try context.save()
+
+        DataSeeder.seedIfNeeded(context: context)
+
+        let shelves = try context.fetch(FetchDescriptor<Shelf>())
+        let finishedShelves = shelves.filter { $0.seedKey == "shelf.finished" || ($0.name == "Finished" && $0.isDefault) }
+        let canonicalShelf = try #require(finishedShelves.first)
+
+        #expect(finishedShelves.count == 1)
+        #expect(canonicalShelf.sortedItems.map(\.title) == ["First", "Second"])
+        #expect(canonicalShelf.sortedItems.map(\.positionInShelf) == [0, 1])
+    }
+
+    @Test("custom shelves matching a built-in name are not merged")
+    func seedIfNeededLeavesCustomShelvesAlone() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+
+        let customWatching = Shelf(name: "Watching", position: 9, isDefault: false)
+        context.insert(customWatching)
+        try context.save()
+
+        DataSeeder.seedIfNeeded(context: context)
+
+        let shelves = try context.fetch(FetchDescriptor<Shelf>())
+        let watchingShelves = shelves.filter { $0.name == "Watching" }
+
+        #expect(watchingShelves.count == 2)
+        #expect(watchingShelves.contains(where: { $0.isDefault == false && $0.seedKey == nil }))
+        #expect(watchingShelves.contains(where: { $0.seedKey == "shelf.watching" }))
+    }
+
+    @Test("custom tags with their own seed key are not merged into built-ins")
+    func seedIfNeededLeavesCustomSeededTagsAlone() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+
+        let customCozy = MoodTag(label: "cozy", seedKey: "tag.custom-cozy")
+        context.insert(customCozy)
+        try context.save()
+
+        DataSeeder.seedIfNeeded(context: context)
+
+        let tags = try context.fetch(FetchDescriptor<MoodTag>())
+        let cozyTags = tags.filter { $0.label == "cozy" }
+
+        #expect(cozyTags.count == 2)
+        #expect(cozyTags.contains(where: { $0.seedKey == "tag.custom-cozy" }))
+        #expect(cozyTags.contains(where: { $0.seedKey == "tag.cozy" }))
     }
 
     @Test("seedIfNeeded marks the defaults flag after ensuring data")

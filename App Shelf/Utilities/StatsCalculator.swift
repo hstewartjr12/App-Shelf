@@ -60,6 +60,7 @@ struct StatsCalculator {
         guard !finished.isEmpty else { return "—" }
         let durations = finished.compactMap { item -> Double? in
             guard let start = item.startedDate, let end = item.finishedDate else { return nil }
+            guard end >= start else { return nil }
             return end.timeIntervalSince(start)
         }
         guard !durations.isEmpty else { return "—" }
@@ -80,7 +81,7 @@ struct StatsCalculator {
             }.count
             return count > 0 ? TagCount(tag: tag, count: count) : nil
         }
-        .sorted { $0.count > $1.count }
+        .sorted { $0.count == $1.count ? $0.tag.label.localizedStandardCompare($1.tag.label) == .orderedAscending : $0.count > $1.count }
     }
 
     func typeCounts(year: Int) -> [TypeCount] {
@@ -89,7 +90,7 @@ struct StatsCalculator {
             let count = finished.filter { $0.mediaType == type }.count
             return count > 0 ? TypeCount(type: type, count: count) : nil
         }
-        .sorted { $0.count > $1.count }
+        .sorted { $0.count == $1.count ? $0.type.displayName < $1.type.displayName : $0.count > $1.count }
     }
 
     func barWidth(count: Int, max: Int) -> CGFloat {

@@ -1,8 +1,18 @@
 import SwiftData
 import Foundation
+import CoreData
 
 enum AppShelfContainer {
     static let appGroupIdentifier = "group.com.appshelf.shared"
+    static let cloudKitContainerIdentifier = "iCloud.com.appshelf.AppShelf"
+
+    static var isDemoLibrary: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.environment["APPSHELF_DEMO_LIBRARY"] == "1"
+        #else
+        false
+        #endif
+    }
 
     enum PersistencePlatform {
         case iOS
@@ -18,22 +28,70 @@ enum AppShelfContainer {
     }
 
     static func create() -> ModelContainer {
-        let schema = Schema([MediaItem.self, Shelf.self, MoodTag.self])
+        if isDemoLibrary {
+            return try! ModelContainer(for: schema, configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+        }
         let url = persistentStoreURL()
-        let config = ModelConfiguration(
-            "AppShelf",
-            schema: schema,
-            url: url,
-            cloudKitDatabase: .none
-        )
+        let cloudKitDatabase = shouldUseCloudKit()
+            ? ModelConfiguration.CloudKitDatabase.private(cloudKitContainerIdentifier)
+            : .none
+
         do {
-            return try ModelContainer(for: schema, configurations: [config])
+            return try makeContainer(url: url, cloudKitDatabase: cloudKitDatabase)
         } catch {
-            // Fallback to in-memory container on schema migration issues during development
-            let fallback = ModelConfiguration(isStoredInMemoryOnly: true)
-            return try! ModelContainer(for: schema, configurations: [fallback])
+            do {
+                return try makeContainer(url: url, cloudKitDatabase: .none)
+            } catch {
+                let fallback = ModelConfiguration(isStoredInMemoryOnly: true)
+                return try! ModelContainer(for: schema, configurations: [fallback])
+            }
         }
     }
+
+    #if DEBUG
+    static func initializeCloudKitSchemaIfRequested(platform: PersistencePlatform = .current) {
+        guard ProcessInfo.processInfo.environment["APPSHELF_INIT_CLOUDKIT_SCHEMA"] == "1" else {
+            return
+        }
+
+        let url = persistentStoreURL(platform: platform)
+        let configuration = makeConfiguration(
+            url: url,
+            cloudKitDatabase: .private(cloudKitContainerIdentifier)
+        )
+
+        do {
+            try autoreleasepool {
+                let description = NSPersistentStoreDescription(url: configuration.url)
+                description.cloudKitContainerOptions = .init(containerIdentifier: cloudKitContainerIdentifier)
+                description.shouldAddStoreAsynchronously = false
+
+                guard let model = NSManagedObjectModel.makeManagedObjectModel(for: [MediaItem.self, Shelf.self, MoodTag.self]) else {
+                    return
+                }
+
+                let container = NSPersistentCloudKitContainer(name: "AppShelf", managedObjectModel: model)
+                container.persistentStoreDescriptions = [description]
+                var loadError: Error?
+                container.loadPersistentStores { _, error in
+                    loadError = error
+                }
+
+                if let loadError {
+                    throw loadError
+                }
+
+                try container.initializeCloudKitSchema()
+
+                if let store = container.persistentStoreCoordinator.persistentStores.first {
+                    try container.persistentStoreCoordinator.remove(store)
+                }
+            }
+        } catch {
+            return
+        }
+    }
+    #endif
 
     static func persistentStoreURL(
         fileManager: FileManager = .default,
@@ -69,6 +127,52 @@ enum AppShelfContainer {
                 .appendingPathComponent("App Shelf", isDirectory: true)
                 .appendingPathComponent("AppShelf.store")
         }
+    }
+
+    private static let schema = Schema([MediaItem.self, Shelf.self, MoodTag.self])
+
+    static func createLocalOnlyContainer(
+        platform: PersistencePlatform = .current
+    ) throws -> ModelContainer {
+        try makeContainer(url: persistentStoreURL(platform: platform), cloudKitDatabase: .none)
+    }
+
+    static func shouldUseCloudKit(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        infoDictionary: [String: Any]? = Bundle.main.infoDictionary
+    ) -> Bool {
+        if environment["APPSHELF_DISABLE_CLOUDKIT"] == "1" {
+            return false
+        }
+
+        if environment["XCTestConfigurationFilePath"] != nil || environment["XCTestSessionIdentifier"] != nil {
+            return false
+        }
+
+        if infoDictionary?["NSExtension"] != nil {
+            return false
+        }
+
+        return true
+    }
+
+    private static func makeContainer(
+        url: URL,
+        cloudKitDatabase: ModelConfiguration.CloudKitDatabase
+    ) throws -> ModelContainer {
+        try ModelContainer(for: schema, configurations: [makeConfiguration(url: url, cloudKitDatabase: cloudKitDatabase)])
+    }
+
+    private static func makeConfiguration(
+        url: URL,
+        cloudKitDatabase: ModelConfiguration.CloudKitDatabase
+    ) -> ModelConfiguration {
+        ModelConfiguration(
+            "AppShelf",
+            schema: schema,
+            url: url,
+            cloudKitDatabase: cloudKitDatabase
+        )
     }
 }
 

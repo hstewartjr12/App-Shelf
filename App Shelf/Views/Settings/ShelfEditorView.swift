@@ -8,6 +8,14 @@ struct ShelfEditorView: View {
 
     var editingShelf: Shelf?
     @State private var name: String
+    @State private var saveError: String?
+
+    private var duplicateName: Bool {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return shelves.contains {
+            $0.persistentModelID != editingShelf?.persistentModelID && $0.name.localizedStandardCompare(trimmed) == .orderedSame
+        }
+    }
 
     init(editing shelf: Shelf? = nil) {
         self.editingShelf = shelf
@@ -19,6 +27,9 @@ struct ShelfEditorView: View {
             Form {
                 Section {
                     TextField("Shelf name", text: $name)
+                    if duplicateName {
+                        Text("A shelf with that name already exists.").font(.caption).foregroundStyle(.red)
+                    }
                 }
             }
             .navigationTitle(editingShelf == nil ? "New Shelf" : "Rename Shelf")
@@ -33,11 +44,12 @@ struct ShelfEditorView: View {
                     Button(editingShelf == nil ? "Add" : "Save") {
                         save()
                     }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || duplicateName)
                     .fontWeight(.semibold)
                 }
             }
         }
+        .shelfSaveAlert($saveError)
         #if os(macOS)
         .frame(minWidth: 360, minHeight: 180)
         #else
@@ -47,7 +59,7 @@ struct ShelfEditorView: View {
 
     private func save() {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty && !duplicateName else { return }
 
         if let shelf = editingShelf {
             shelf.name = trimmed
@@ -56,7 +68,7 @@ struct ShelfEditorView: View {
             let shelf = Shelf(name: trimmed, position: newPosition, isDefault: false)
             context.insert(shelf)
         }
-        try? context.save()
-        dismiss()
+        do { try context.save(); dismiss() }
+        catch { context.rollback(); saveError = error.localizedDescription }
     }
 }

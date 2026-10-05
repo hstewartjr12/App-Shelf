@@ -56,12 +56,20 @@ targets:
         NSPhotoLibraryUsageDescription: "App Shelf uses your photo library to add cover art for your media."
         UILaunchScreen: {}
         UIApplicationSupportsIndirectInputEvents: true
+        UIBackgroundModes:
+          - remote-notification
         ITSAppUsesNonExemptEncryption: false
     entitlements:
       path: "App Shelf/App Shelf.entitlements"
       properties:
         com.apple.security.application-groups:
           - group.com.appshelf.shared
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.appshelf.AppShelf
+        com.apple.developer.icloud-services:
+          - CloudKit
+        com.apple.developer.ubiquity-container-identifiers:
+          - iCloud.com.appshelf.AppShelf
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.appshelf.AppShelf
@@ -81,6 +89,8 @@ targets:
     platform: macOS
     sources:
       - path: "App Shelf Mac"
+        excludes:
+          - "**/*.entitlements"
       - path: "App Shelf/Models"
       - path: "App Shelf/Views"
       - path: "App Shelf/Utilities"
@@ -92,10 +102,20 @@ targets:
         CFBundleDisplayName: App Shelf
         NSPhotoLibraryUsageDescription: "App Shelf uses your photo library to add cover art for your media."
         ITSAppUsesNonExemptEncryption: false
+    entitlements:
+      path: "App Shelf Mac/App Shelf Mac.entitlements"
+      properties:
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.appshelf.AppShelf
+        com.apple.developer.icloud-services:
+          - CloudKit
+        com.apple.developer.ubiquity-container-identifiers:
+          - iCloud.com.appshelf.AppShelf
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.appshelf.AppShelf.mac
         INFOPLIST_FILE: "App Shelf Mac/Info.plist"
+        CODE_SIGN_ENTITLEMENTS: "App Shelf Mac/App Shelf Mac.entitlements"
         ENABLE_PREVIEWS: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
@@ -140,6 +160,12 @@ targets:
       properties:
         com.apple.security.application-groups:
           - group.com.appshelf.shared
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.appshelf.AppShelf
+        com.apple.developer.icloud-services:
+          - CloudKit
+        com.apple.developer.ubiquity-container-identifiers:
+          - iCloud.com.appshelf.AppShelf
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.appshelf.AppShelf.widget

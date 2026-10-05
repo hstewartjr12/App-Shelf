@@ -8,19 +8,21 @@ struct RootTabView: View {
         TabView {
             ShelfListView()
                 .tabItem {
-                    Label("Shelf", systemImage: "books.vertical.fill")
+                    Label("Library", systemImage: "books.vertical.fill")
                 }
             StatsView()
                 .tabItem {
-                    Label("Stats", systemImage: "chart.bar.fill")
+                    Label("Review", systemImage: "chart.bar.fill")
                 }
             SettingsView()
                 .tabItem {
                     Label("Settings", systemImage: "gearshape.fill")
                 }
         }
+        .tint(ShelfStyle.sageForeground)
         .onAppear {
             DataSeeder.seedIfNeeded(context: context)
+            DemoLibrary.seedIfRequested(context: context)
         }
     }
 }

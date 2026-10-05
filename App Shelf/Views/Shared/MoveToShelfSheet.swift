@@ -7,6 +7,7 @@ struct MoveToShelfSheet: View {
     @Query(sort: \Shelf.position) private var shelves: [Shelf]
 
     let item: MediaItem
+    @State private var saveError: String?
 
     var body: some View {
         NavigationStack {
@@ -37,6 +38,7 @@ struct MoveToShelfSheet: View {
                 }
             }
         }
+        .shelfSaveAlert($saveError)
         #if os(macOS)
         .frame(minWidth: 320, minHeight: 280)
         #else
@@ -50,7 +52,7 @@ struct MoveToShelfSheet: View {
             return
         }
 
-        try? context.save()
-        dismiss()
+        do { try context.save(); dismiss() }
+        catch { context.rollback(); saveError = error.localizedDescription }
     }
 }

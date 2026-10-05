@@ -5,7 +5,12 @@ import SwiftData
 struct AppShelfMacApp: App {
     let container: ModelContainer
 
+    @MainActor
     init() {
+        AppShelfLaunchPreparation.prepareForSyncIfNeeded(platform: .macOS)
+        #if DEBUG
+        AppShelfContainer.initializeCloudKitSchemaIfRequested(platform: .macOS)
+        #endif
         container = AppShelfContainer.create()
     }
 

@@ -10,6 +10,7 @@ struct MoodTagTests {
     @Test("defaults has exactly 8 entries")
     func defaultsCount() {
         #expect(MoodTag.defaults.count == 8)
+        #expect(MoodTag.builtInDefinitions.count == 8)
     }
 
     @Test("all default labels are non-empty")
@@ -41,6 +42,7 @@ struct MoodTagTests {
         context.insert(tag)
 
         #expect(tag.label == "cozy")
+        #expect(tag.seedKey == nil)
         #expect(tag.items.isEmpty)
     }
 
